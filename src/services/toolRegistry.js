@@ -72,11 +72,11 @@ class ToolRegistry {
     }
   }
 
-  // Save skill to file
+  // Save skill to file (as .md)
   async saveSkill(skillName, skillCode) {
-    const filePath = path.join(this.skillsDir, `${skillName}.js`);
+    const filePath = path.join(this.skillsDir, `${skillName}.md`);
     fs.writeFileSync(filePath, skillCode);
-    return this.loadSkill(skillName, skillCode);
+    return { success: true, message: `Skill ${skillName} saved as .md` };
   }
 }
 

@@ -1,6 +1,6 @@
 /**
  * Dora AI API Configuration
- * Loads all settings from config.json
+ * Loads settings from config.json and resolves environment variables
  */
 
 const fs = require('fs');
@@ -17,49 +17,76 @@ try {
   process.exit(1);
 }
 
+// Resolve ${ENV_VAR} placeholders
+function resolveEnvVars(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/\$\{(\w+)\}/g, (_, varName) => {
+      const envVal = process.env[varName];
+      if (!envVal) {
+        console.warn(`Warning: Environment variable ${varName} is not set`);
+        return '';
+      }
+      return envVal;
+    });
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(resolveEnvVars);
+  }
+  if (obj && typeof obj === 'object') {
+    const resolved = {};
+    for (const [key, value] of Object.entries(obj)) {
+      resolved[key] = resolveEnvVars(value);
+    }
+    return resolved;
+  }
+  return obj;
+}
+
+configData = resolveEnvVars(configData);
+
 // Build config object from JSON
 const config = {
   // ==================== AI PROVIDERS ====================
   groq: {
-    apiKey: configData.aiProviders.groq?.apiKey || '',
-    baseUrl: configData.aiProviders.groq?.baseUrl || 'https://api.groq.com/openai/v1',
-    model: configData.aiProviders.groq?.model || 'llama-3.1-8b-instant',
-    maxTokens: configData.aiProviders.groq?.maxTokens || 4096,
-    temperature: configData.aiProviders.groq?.temperature || 0.7,
-    timeout: configData.aiProviders.groq?.timeout || 60000
+    apiKey: configData.aiProviders?.groq?.apiKey || '',
+    baseUrl: configData.aiProviders?.groq?.baseUrl || 'https://api.groq.com/openai/v1',
+    model: configData.aiProviders?.groq?.model || 'llama-3.1-8b-instant',
+    maxTokens: configData.aiProviders?.groq?.maxTokens || 4096,
+    temperature: configData.aiProviders?.groq?.temperature || 0.7,
+    timeout: configData.aiProviders?.groq?.timeout || 60000
   },
 
   openai: {
-    apiKey: configData.aiProviders.openai?.apiKey || '',
-    baseUrl: configData.aiProviders.openai?.baseUrl || 'https://api.openai.com/v1',
-    model: configData.aiProviders.openai?.model || 'gpt-4o-mini',
-    maxTokens: configData.aiProviders.openai?.maxTokens || 4096,
-    temperature: configData.aiProviders.openai?.temperature || 0.7,
-    timeout: configData.aiProviders.openai?.timeout || 60000
+    apiKey: configData.aiProviders?.openai?.apiKey || '',
+    baseUrl: configData.aiProviders?.openai?.baseUrl || 'https://api.openai.com/v1',
+    model: configData.aiProviders?.openai?.model || 'gpt-4o-mini',
+    maxTokens: configData.aiProviders?.openai?.maxTokens || 4096,
+    temperature: configData.aiProviders?.openai?.temperature || 0.7,
+    timeout: configData.aiProviders?.openai?.timeout || 60000
   },
 
   openrouter: {
-    apiKey: configData.aiProviders.openrouter?.apiKey || '',
-    baseUrl: configData.aiProviders.openrouter?.baseUrl || 'https://openrouter.ai/api/v1',
-    model: configData.aiProviders.openrouter?.model || 'google/gemini-2.0-flash-thinking-exp:free',
-    maxTokens: configData.aiProviders.openrouter?.maxTokens || 4096,
-    temperature: configData.aiProviders.openrouter?.temperature || 0.7,
-    timeout: configData.aiProviders.openrouter?.timeout || 60000
+    apiKey: configData.aiProviders?.openrouter?.apiKey || '',
+    baseUrl: configData.aiProviders?.openrouter?.baseUrl || 'https://openrouter.ai/api/v1',
+    model: configData.aiProviders?.openrouter?.model || 'google/gemini-2.0-flash-thinking-exp:free',
+    maxTokens: configData.aiProviders?.openrouter?.maxTokens || 4096,
+    temperature: configData.aiProviders?.openrouter?.temperature || 0.7,
+    timeout: configData.aiProviders?.openrouter?.timeout || 60000
   },
 
   huggingface: {
-    apiKey: configData.aiProviders.huggingface?.apiKey || '',
-    baseUrl: configData.aiProviders.huggingface?.baseUrl || 'https://api-inference.huggingface.co/models',
-    model: configData.aiProviders.huggingface?.model || 'meta-llama/Llama-3.2-3B-Instruct',
-    timeout: configData.aiProviders.huggingface?.timeout || 60000
+    apiKey: configData.aiProviders?.huggingface?.apiKey || '',
+    baseUrl: configData.aiProviders?.huggingface?.baseUrl || 'https://api-inference.huggingface.co/models',
+    model: configData.aiProviders?.huggingface?.model || 'meta-llama/Llama-3.2-3B-Instruct',
+    timeout: configData.aiProviders?.huggingface?.timeout || 60000
   },
 
   ollama: {
-    baseUrl: configData.aiProviders.ollama?.baseUrl || 'http://localhost:11434',
-    model: configData.aiProviders.ollama?.model || 'llama3.2',
-    maxTokens: configData.aiProviders.ollama?.maxTokens || 4096,
-    temperature: configData.aiProviders.ollama?.temperature || 0.7,
-    timeout: configData.aiProviders.ollama?.timeout || 120000
+    baseUrl: configData.aiProviders?.ollama?.baseUrl || 'http://localhost:11434',
+    model: configData.aiProviders?.ollama?.model || 'llama3.2',
+    maxTokens: configData.aiProviders?.ollama?.maxTokens || 4096,
+    temperature: configData.aiProviders?.ollama?.temperature || 0.7,
+    timeout: configData.aiProviders?.ollama?.timeout || 120000
   },
 
   // ==================== ACTIVE AI PROVIDER ====================
