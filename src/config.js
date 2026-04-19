@@ -1,6 +1,7 @@
 /**
  * Dora AI API Configuration
  * Loads settings from config.json and resolves environment variables
+ * AI Providers are dynamically loaded from config.json - no hardcoded list
  */
 
 const fs = require('fs');
@@ -44,50 +45,27 @@ function resolveEnvVars(obj) {
 
 configData = resolveEnvVars(configData);
 
-// Build config object from JSON
+// ==================== BUILD AI PROVIDERS DYNAMICALLY ====================
+// Each provider in config.json becomes a config property automatically
+const aiProviders = {};
+
+if (configData.aiProviders) {
+  for (const [name, settings] of Object.entries(configData.aiProviders)) {
+    aiProviders[name] = {
+      apiKey: settings.apiKey || '',
+      baseUrl: settings.baseUrl || '',
+      model: settings.model || '',
+      maxTokens: settings.maxTokens || 4096,
+      temperature: settings.temperature || 0.7,
+      timeout: settings.timeout || 60000
+    };
+  }
+}
+
+// Build config object
 const config = {
-  // ==================== AI PROVIDERS ====================
-  groq: {
-    apiKey: configData.aiProviders?.groq?.apiKey || '',
-    baseUrl: configData.aiProviders?.groq?.baseUrl || 'https://api.groq.com/openai/v1',
-    model: configData.aiProviders?.groq?.model || 'llama-3.1-8b-instant',
-    maxTokens: configData.aiProviders?.groq?.maxTokens || 4096,
-    temperature: configData.aiProviders?.groq?.temperature || 0.7,
-    timeout: configData.aiProviders?.groq?.timeout || 60000
-  },
-
-  openai: {
-    apiKey: configData.aiProviders?.openai?.apiKey || '',
-    baseUrl: configData.aiProviders?.openai?.baseUrl || 'https://api.openai.com/v1',
-    model: configData.aiProviders?.openai?.model || 'gpt-4o-mini',
-    maxTokens: configData.aiProviders?.openai?.maxTokens || 4096,
-    temperature: configData.aiProviders?.openai?.temperature || 0.7,
-    timeout: configData.aiProviders?.openai?.timeout || 60000
-  },
-
-  openrouter: {
-    apiKey: configData.aiProviders?.openrouter?.apiKey || '',
-    baseUrl: configData.aiProviders?.openrouter?.baseUrl || 'https://openrouter.ai/api/v1',
-    model: configData.aiProviders?.openrouter?.model || 'google/gemini-2.0-flash-thinking-exp:free',
-    maxTokens: configData.aiProviders?.openrouter?.maxTokens || 4096,
-    temperature: configData.aiProviders?.openrouter?.temperature || 0.7,
-    timeout: configData.aiProviders?.openrouter?.timeout || 60000
-  },
-
-  huggingface: {
-    apiKey: configData.aiProviders?.huggingface?.apiKey || '',
-    baseUrl: configData.aiProviders?.huggingface?.baseUrl || 'https://api-inference.huggingface.co/models',
-    model: configData.aiProviders?.huggingface?.model || 'meta-llama/Llama-3.2-3B-Instruct',
-    timeout: configData.aiProviders?.huggingface?.timeout || 60000
-  },
-
-  ollama: {
-    baseUrl: configData.aiProviders?.ollama?.baseUrl || 'http://localhost:11434',
-    model: configData.aiProviders?.ollama?.model || 'llama3.2',
-    maxTokens: configData.aiProviders?.ollama?.maxTokens || 4096,
-    temperature: configData.aiProviders?.ollama?.temperature || 0.7,
-    timeout: configData.aiProviders?.ollama?.timeout || 120000
-  },
+  // Spread dynamically loaded AI providers
+  ...aiProviders,
 
   // ==================== ACTIVE AI PROVIDER ====================
   activeProvider: configData.activeProvider || 'groq',
@@ -160,7 +138,7 @@ Rules:
 config.getActiveAI = function() {
   const provider = this.activeProvider;
   if (!this[provider]) {
-    throw new Error(`Unknown AI provider: ${provider}`);
+    throw new Error(`Unknown AI provider: "${provider}". Add "${provider}" to aiProviders in config.json`);
   }
   return {
     ...this[provider],
@@ -172,13 +150,20 @@ config.isAIConfigured = function(provider = null) {
   const p = provider || this.activeProvider;
   const ai = this[p];
   if (!ai) return false;
-  if (p === 'ollama') return true;
+  // Check if it's a local provider (no apiKey needed) or has valid apiKey
+  if (ai.baseUrl && ai.baseUrl.startsWith('http://localhost')) return true;
   return !!(ai.apiKey);
 };
 
+// Dynamically get all providers from config.json
 config.getAvailableProviders = function() {
-  const providers = ['groq', 'openai', 'openrouter', 'huggingface', 'ollama'];
+  const providers = Object.keys(configData.aiProviders || {});
   return providers.filter(p => this.isAIConfigured(p));
+};
+
+// Get all configured providers (even without apiKey)
+config.getAllProviders = function() {
+  return Object.keys(configData.aiProviders || {});
 };
 
 module.exports = config;

@@ -1,16 +1,18 @@
+/**
+ * Universal AI Provider Service
+ * Supports any OpenAI-compatible API provider configured in config.json
+ * Provider is set via config.activeProvider
+ */
+
 const axios = require('axios');
 const config = require('../config');
 
-class GroqService {
-  constructor() {
-    // Uses config.js for all settings
-  }
-
+class AIService {
   async chat(messages, tools = []) {
     const ai = config.getActiveAI();
     
-    if (ai.name !== 'ollama' && !ai.apiKey) {
-      throw new Error(`${ai.name.toUpperCase()} API key not configured. Set ${ai.name.toUpperCase()}_API_KEY in .env`);
+    if (!ai.apiKey) {
+      throw new Error(`${ai.name.toUpperCase()} API key not configured. Check your config.json or .env`);
     }
 
     const requestBody = {
@@ -37,11 +39,58 @@ class GroqService {
       return response.data;
     } catch (error) {
       if (error.response) {
-        throw new Error(`${ai.name.toUpperCase()} API error: ${error.response.status} - ${error.response.data?.error?.message || error.message}`);
+        const msg = error.response.data?.error?.message || error.response.data?.error?.code || error.message;
+        throw new Error(`${ai.name.toUpperCase()} API error: ${error.response.status} - ${msg}`);
+      }
+      if (error.code === 'ECONNREFUSED') {
+        throw new Error(`Cannot connect to ${ai.name} at ${ai.baseUrl}. Check if the server is running.`);
       }
       throw error;
     }
   }
+
+  // Test a specific provider
+  async testProvider(providerName, message = 'Say "Hello, this is a test." and nothing else.') {
+    const original = config.activeProvider;
+    
+    try {
+      config.activeProvider = providerName;
+      const ai = config.getActiveAI();
+      
+      if (!ai.apiKey) {
+        return { success: false, error: `No API key for ${providerName}` };
+      }
+
+      const response = await axios.post(`${ai.baseUrl}/chat/completions`, {
+        model: ai.model,
+        messages: [{ role: 'user', content: message }],
+        temperature: 0.7,
+        max_tokens: 100
+      }, {
+        headers: {
+          'Authorization': `Bearer ${ai.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: ai.timeout
+      });
+
+      return {
+        success: true,
+        provider: providerName,
+        model: ai.model,
+        response: response.data.choices[0].message.content,
+        tokens: response.data.usage
+      };
+    } catch (error) {
+      return {
+        success: false,
+        provider: providerName,
+        error: error.response?.data?.error?.message || error.message
+      };
+    } finally {
+      config.activeProvider = original;
+    }
+  }
 }
 
-module.exports = new GroqService();
+module.exports = new AIService();

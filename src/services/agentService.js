@@ -1,4 +1,4 @@
-const groqService = require('./groqService');
+const aiService = require('./groqService');
 const memoryService = require('./memoryService');
 const toolRegistry = require('./toolRegistry');
 const config = require('../config');
@@ -41,7 +41,7 @@ class AgentService {
         turnCount++;
 
         // 5a. Call AI
-        const response = await groqService.chat(messages, tools);
+        const response = await aiService.chat(messages, tools);
         const choice = response.choices[0];
         const reply = choice.message.content || '';
 
