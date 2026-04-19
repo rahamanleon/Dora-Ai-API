@@ -16,7 +16,7 @@ class GroqService {
       model: this.model,
       messages: messages,
       temperature: 0.7,
-      max_tokens: 1024
+      max_tokens: 4096
     };
 
     if (tools.length > 0) {
@@ -30,7 +30,7 @@ class GroqService {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 30000
+        timeout: 60000
       });
 
       return response.data;
