@@ -19,10 +19,13 @@ async function executeTool(req, res) {
       return res.status(400).json({ error: 'tool_name required' });
     }
 
+    // Flatten params if wrapped (API passes {params: {...}})
+    const flatParams = params || {};
+
     const result = await agentService.executeTool(
       user_id || 'anonymous',
       tool_name,
-      params || {}
+      flatParams
     );
 
     res.json({ success: true, result });

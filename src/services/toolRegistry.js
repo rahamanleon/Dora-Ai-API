@@ -34,7 +34,11 @@ class ToolRegistry {
     if (!tool) {
       throw new Error(`Tool not found: ${toolName}`);
     }
-    return tool(params);
+    // Unwrap params to positional args
+    const args = typeof params === 'object' && params !== null
+      ? Object.values(params)
+      : [params];
+    return tool(...args);
   }
 
   list() {
