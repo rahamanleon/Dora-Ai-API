@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 const chatRoutes = require('./routes/chat');
 const toolRoutes = require('./routes/tools');
 const config = require('./config');
@@ -11,6 +12,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Static files for Web UI
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 // Request logger
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -20,6 +24,11 @@ app.use((req, res, next) => {
 // Routes
 app.use('/chat', chatRoutes);
 app.use('/tools', toolRoutes);
+
+// Web UI root — serve index.html at /
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
 
 // Health check
 app.get('/health', (req, res) => {
@@ -64,8 +73,10 @@ async function start() {
     const PORT = process.env.PORT || config.server.port;
     app.listen(PORT, () => {
       console.log(`Dora API running on port ${PORT}`);
-      console.log(`AI Provider: ${config.activeProvider}`);
-      console.log(`Available: ${config.getAvailableProviders().join(', ')}`);
+      console.log(`Web UI:       http://localhost:${PORT}`);
+      console.log(`API:          http://localhost:${PORT}/chat`);
+      console.log(`AI Provider:  ${config.activeProvider}`);
+      console.log(`Available:   ${config.getAvailableProviders().join(', ')}`);
     });
   } catch (err) {
     console.error('Startup error:', err);

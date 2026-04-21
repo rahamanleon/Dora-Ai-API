@@ -50,12 +50,20 @@ async function fetchWithBackoff(url, retries = 3) {
         headers: {
           'User-Agent': randomUA(),
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Language': 'en-US,en;q=0.9,bn;q=0.8',
+          'Accept-Charset': 'utf-8, windows-1252',
           'Accept-Encoding': 'gzip, deflate, br',
         },
-        timeout: 20000,
+        timeout: 25000,
         maxRedirects: 5,
       });
+      // Force utf-8 if detected as windows-1252 or iso
+      const charsetMatch = response.headers['content-type']?.match(/charset=([^\s;]+)/i);
+      if (charsetMatch && !charsetMatch[1].toLowerCase().includes('utf-8')) {
+        try {
+          return Buffer.from(response.data, 'binary').toString('utf-8');
+        } catch { /* keep as-is */ }
+      }
       return response.data;
     } catch (err) {
       if (attempt === retries) throw err;
@@ -87,6 +95,22 @@ function parseResults(html) {
       results.push({ title, url, snippet, trust: trustScore(url) });
     }
   }
+
+  // Fallback: try to extract from any <a class="result"> blocks if no results found
+  if (results.length === 0) {
+    const fallbackRe = /<a [^>]*href="([^"]+)"[^>]*class="[^"]*result[^"]*"[^>]*>(.*?)<\/a>/gi;
+    const fallbackLinks = [...html.matchAll(fallbackRe)];
+    for (let i = 0; i < fallbackLinks.length && results.length < 5; i++) {
+      const rawHref = (fallbackLinks[i][1] || '').trim();
+      const titleHtml = fallbackLinks[i][2] || '';
+      const title = titleHtml.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+      const url = unwrapDDG(rawHref);
+      if (title && url && !url.includes('duckduckgo.com/y.js') && !url.includes('amazon.com') && !url.includes('eBay')) {
+        results.push({ title, url, snippet: '', trust: trustScore(url) });
+      }
+    }
+  }
+
   return results;
 }
 

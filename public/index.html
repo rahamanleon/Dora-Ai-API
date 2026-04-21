@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dora AI Chat</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="dora-logo">D</div>
+        <div>
+          <h1 class="app-title">Dora AI</h1>
+          <p class="app-subtitle">Web Search & Chat Assistant</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="status-indicator" class="status-indicator status-checking">Checking...</div>
+        <div class="user-id">
+          <small>User ID:</small>
+          <code id="user-id-display">-</code>
+        </div>
+      </div>
+    </header>
+
+    <!-- Chat Area -->
+    <main class="chat-area" id="chat-messages">
+      <div class="message message-system">
+        <div class="message-bubble system">
+          Welcome to Dora AI! I can search the web and answer your questions. Start typing below.
+        </div>
+      </div>
+    </main>
+
+    <!-- Typing Indicator -->
+    <div id="typing-indicator" class="typing-indicator" style="display: none;">
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <small>Dora is thinking...</small>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          id="message-input"
+          placeholder="Ask anything... (e.g. latest news, search for info, explain a topic)"
+          rows="1"
+          autofocus
+        ></textarea>
+        <div class="input-actions">
+          <button id="clear-btn" class="btn-clear" title="Clear conversation">Clear</button>
+          <button id="send-btn" class="btn-send" title="Send message">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-footer">
+        <small>Paste <code>DORA_API</code> env var if API is on another host</small>
+        <small>Dora AI v1.0 &mdash; Powered by Groq</small>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Allow overriding API URL via URL param or localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiFromUrl = urlParams.get('api');
+    if (apiFromUrl) localStorage.setItem('dora_api_url', apiFromUrl);
+    window.DORA_API = localStorage.getItem('dora_api_url') || 'http://localhost:3000';
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>

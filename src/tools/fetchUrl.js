@@ -12,11 +12,21 @@ async function fetchUrl(url, options = {}) {
     return { success: false, error: 'URL must be a non-empty string', url };
   }
 
-  // Basic URL validation
+  // Basic URL validation and repair
+  let normalizedUrl = url.trim();
+
   try {
-    new URL(url);
+    new URL(normalizedUrl);
   } catch {
-    return { success: false, error: 'Invalid URL format', url };
+    // Try prepending https:// for bare domains/paths
+    if (!normalizedUrl.startsWith('http')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+    try {
+      new URL(normalizedUrl);
+    } catch {
+      return { success: false, error: 'Invalid URL format', url };
+    }
   }
 
   try {
