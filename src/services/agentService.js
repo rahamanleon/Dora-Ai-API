@@ -27,9 +27,16 @@ class AgentService {
       ? `\nRecent memory:\n${memories.map(m => `${m.key}: ${m.value}`).join('\n')}`
       : '';
 
-    // Build messages
+    // Build messages - ADD MANDATORY SEARCH HINT FOR DATE-RELATED QUERIES
+    const isFutureQuestion = /\b(202[5-9]|203[0-9])\b/.test(message) || 
+                             /\b(upcoming|future|latest|newest|best of|predictions?|forecast)\b/i.test(message);
+    
+    const searchHint = isFutureQuestion 
+      ? '\n\n⚠️ IMPORTANT: This question mentions a future date or prediction. You MUST use webSearch tool FIRST before answering. Do not skip this step.'
+      : '';
+    
     let messages = [
-      { role: 'system', content: config.agent.systemPrompt + memoryContext },
+      { role: 'system', content: config.agent.systemPrompt + memoryContext + searchHint },
       ...historyMessages,
       { role: 'user', content: message }
     ];
