@@ -12,8 +12,18 @@ class MemoryService {
     try {
       return await operation();
     } catch (err) {
-      if (err.code === 8000 || err.message.includes('not allowed')) {
-        console.warn('[MemoryService] MongoDB permission denied, using in-memory fallback');
+      const errorPatterns = [
+        'not allowed',
+        'Unauthorized',
+        'not authorized',
+        'does not have permission',
+        'user is not allowed'
+      ];
+      const isPermissionError = err.code === 8000 || 
+        errorPatterns.some(p => err.message && err.message.toLowerCase().includes(p.toLowerCase()));
+      
+      if (isPermissionError) {
+        console.warn('[MemoryService] MongoDB permission denied, using in-memory fallback:', err.message);
         return fallback;
       }
       throw err;

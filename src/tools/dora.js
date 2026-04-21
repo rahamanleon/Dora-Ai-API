@@ -1,191 +1,197 @@
-/**
- * Dora Tool - Advanced AI-powered web research and synthesis
- * 
- * A versatile tool that combines web search, content fetching,
- * and AI-powered synthesis for comprehensive research tasks.
- * 
- * @author Leox (Rahaman Leon)
- * @license MIT
- */
+const axios = require("axios");
 
-const axios = require('axios');
+const DORA_API_URL = "https://dora-ai-api.onrender.com/chat";
 
-// User agents for rotation
-const USER_AGENTS = [
-  'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-];
-
-function getRandomUA() {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+// Validate API URL
+function isValidUrl(string) {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
-/**
- * Search DuckDuckGo for a query
- * @param {string} query - Search query
- * @param {number} maxResults - Maximum number of results (default: 5)
- * @returns {Promise<Array>} Array of search results
- */
-async function search(query, maxResults = 5) {
-  try {
-    const encodedQuery = encodeURIComponent(query);
-    const url = `https://html.duckduckgo.com/html/?q=${encodedQuery}`;
-    
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': getRandomUA(),
-        'Accept': 'text/html',
-      },
-      timeout: 15000,
-    });
+module.exports = {
+  config: {
+    name: "dora",
+    version: "1.8",
+    author: String.fromCharCode(77, 97, 104, 77, 85, 68),
+    countDown: 5,
+    role: 0,
+    description: {
+      bn: "AI এর সাথে চ্যাট করুন",
+      en: "Chat with Dora AI assistant"
+    },
+    category: "ai",
+    guide: {
+      bn: "   {pn} <প্রশ্ন>: আপনার প্রশ্নটি লিখুন",
+      en: "   {pn} <question>: Type your question"
+    }
+  },
 
-    const results = [];
-    const html = response.data;
-    
-    // Parse result snippets from DuckDuckGo HTML
-    const resultRegex = /<a class="result__a" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
-    let match;
-    let count = 0;
-    
-    while ((match = resultRegex.exec(html)) !== null && count < maxResults) {
-      const link = match[1];
-      const title = match[2].replace(/<[^>]*>/g, '').trim();
-      const snippet = match[3].replace(/<[^>]*>/g, '').trim();
-      
-      results.push({
-        title,
-        link,
-        snippet
-      });
-      count++;
+  langs: {
+    bn: {
+      noQuery: "× বেবি, কিছু তো জিজ্ঞেস করো!",
+      noResponse: "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।",
+      error: "× এআই কাজ করছে না: %1",
+      apiDown: "× এআই সার্ভার এখন অফলাইন। পরে আবার চেষ্টা করুন।",
+      thinking: "🤖 ভাবছি..."
+    },
+    en: {
+      noQuery: "× Please provide a question!",
+      noResponse: "Sorry, I couldn't generate a response.",
+      error: "× API error: %1",
+      apiDown: "× AI server is offline. Please try again later.",
+      thinking: "🤖 Thinking..."
+    }
+  },
+
+  onStart: async function ({ api, message, args, event, getLang }) {
+    // Author validation
+    const expectedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
+    if (this.config.author !== expectedAuthor) {
+      return api.sendMessage(
+        "You are not authorized to change the author name.",
+        event.threadID,
+        event.messageID
+      );
     }
 
-    // Fallback: simple link + title extraction
-    if (results.length === 0) {
-      const linkRegex = /<a class="result__a" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-      while ((match = linkRegex.exec(html)) !== null && results.length < maxResults) {
-        const title = match[2].replace(/<[^>]*>/g, '').trim();
-        if (title && !title.includes('&amp')) {
-          results.push({
-            title,
-            link: match[1],
-            snippet: ''
+    const query = args.join(" ").trim();
+    if (!query) {
+      return message.reply(getLang("noQuery"));
+    }
+
+    // Validate API URL
+    if (!isValidUrl(DORA_API_URL)) {
+      return message.reply(getLang("error", "Invalid API URL configured"));
+    }
+
+    // Send typing indicator
+    api.sendTypingIndicator(event.threadID).catch(() => {});
+
+    try {
+      const response = await axios.post(
+        DORA_API_URL,
+        {
+          user_id: String(event.senderID),
+          message: query
+        },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          timeout: 30000 // 30s timeout
+        }
+      );
+
+      // Handle various response formats
+      const replyText =
+        response.data?.reply ||
+        response.data?.response ||
+        response.data?.message ||
+        response.data?.text ||
+        getLang("noResponse");
+
+      // Handle empty response
+      if (!replyText || replyText.trim() === "") {
+        return message.reply(getLang("noResponse"));
+      }
+
+      api.sendMessage(replyText, event.threadID, (error, info) => {
+        if (!error) {
+          if (!global.GoatBot) global.GoatBot = {};
+          if (!global.GoatBot.onReply) global.GoatBot.onReply = new Map();
+          global.GoatBot.onReply.set(info.messageID, {
+            commandName: this.config.name,
+            author: event.senderID,
+            messageID: info.messageID
           });
         }
+      }, event.messageID);
+
+    } catch (err) {
+      console.error("Dora API Error:", err.message);
+
+      // Handle specific error types
+      if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
+        return message.reply(getLang("apiDown"));
       }
-    }
 
-    return results;
-  } catch (error) {
-    console.error('Search error:', error.message);
-    return [];
-  }
-}
-
-/**
- * Fetch content from a URL and extract readable text
- * @param {string} url - URL to fetch
- * @param {number} maxChars - Maximum characters to return (default: 3000)
- * @returns {Promise<string>} Extracted text content
- */
-async function fetchUrl(url, maxChars = 3000) {
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': getRandomUA(),
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      timeout: 15000,
-    });
-
-    let content = response.data;
-    
-    // Remove scripts, styles, nav, footer, header
-    content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    content = content.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
-    content = content.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
-    content = content.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
-    content = content.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-    
-    // Extract readable text from key tags
-    let readable = '';
-    const tags = ['p', 'h1', 'h2', 'h3', 'h4', 'li', 'article', 'section'];
-    
-    for (const tag of tags) {
-      const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi');
-      let m;
-      while ((m = regex.exec(content)) !== null) {
-        const text = m[1].replace(/<[^>]*>/g, '').trim();
-        if (text) readable += text + '\n\n';
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        if (status === 502 || status === 503 || status === 504) {
+          return message.reply(getLang("apiDown"));
+        }
+        // Include status for debugging
+        return message.reply(getLang("error", `HTTP ${status}`));
       }
+
+      if (err.code === "ECONNABORTED" || err.message.includes("timeout")) {
+        return message.reply(getLang("error", "Request timeout"));
+      }
+
+      return message.reply(getLang("error", err.message));
     }
-    
-    // Fallback: get all text
-    if (!readable) {
-      readable = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  },
+
+  onReply: async function ({ api, event, Reply, args, getLang, message }) {
+    if (Reply.author !== event.senderID) return;
+
+    const query = args.join(" ").trim();
+    if (!query) return;
+
+    // Send typing indicator
+    api.sendTypingIndicator(event.threadID).catch(() => {});
+
+    try {
+      const response = await axios.post(
+        DORA_API_URL,
+        {
+          user_id: String(event.senderID),
+          message: query
+        },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          timeout: 30000
+        }
+      );
+
+      const replyText =
+        response.data?.reply ||
+        response.data?.response ||
+        response.data?.message ||
+        response.data?.text ||
+        getLang("noResponse");
+
+      if (!replyText || replyText.trim() === "") {
+        return message.reply(getLang("noResponse"));
+      }
+
+      api.sendMessage(replyText, event.threadID, (error, info) => {
+        if (!error) {
+          if (!global.GoatBot) global.GoatBot = {};
+          if (!global.GoatBot.onReply) global.GoatBot.onReply = new Map();
+          global.GoatBot.onReply.set(info.messageID, {
+            commandName: this.config.name,
+            author: event.senderID,
+            messageID: info.messageID
+          });
+        }
+      }, event.messageID);
+
+    } catch (err) {
+      console.error("Dora Reply Error:", err.message);
+
+      if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
+        return message.reply(getLang("apiDown"));
+      }
+
+      return message.reply(getLang("error", err.message));
     }
-    
-    // Cap at maxChars
-    if (readable.length > maxChars) {
-      readable = readable.substring(0, maxChars) + '\n\n[... content truncated ...]';
-    }
-    
-    return readable;
-  } catch (error) {
-    console.error('Fetch error:', error.message);
-    return `Error fetching URL: ${error.message}`;
   }
-}
-
-/**
- * Main tool function - research a topic
- * @param {object} args - { query: string, depth?: 'quick'|'normal'|'deep' }
- * @returns {Promise<object>} Research results
- */
-async function doraTool(args) {
-  const { query, depth = 'normal' } = args;
-  
-  if (!query) {
-    return { error: 'Query is required' };
-  }
-
-  const maxResults = depth === 'quick' ? 3 : depth === 'deep' ? 10 : 5;
-  
-  // Step 1: Search
-  const searchResults = await search(query, maxResults);
-  
-  if (searchResults.length === 0) {
-    return { 
-      query,
-      error: 'No search results found',
-      tips: 'Try different keywords or check your internet connection'
-    };
-  }
-
-  // Step 2: Fetch top results
-  const enrichedResults = [];
-  const fetchLimit = depth === 'quick' ? 1 : depth === 'deep' ? 5 : 3;
-  
-  for (let i = 0; i < Math.min(fetchLimit, searchResults.length); i++) {
-    const result = searchResults[i];
-    const content = await fetchUrl(result.link, 2000);
-    enrichedResults.push({
-      title: result.title,
-      link: result.link,
-      snippet: result.snippet,
-      content: content.substring(0, 1000) + (content.length > 1000 ? '...' : '')
-    });
-  }
-
-  return {
-    query,
-    depth,
-    totalFound: searchResults.length,
-    topResults: enrichedResults,
-    allLinks: searchResults.map(r => ({ title: r.title, link: r.link }))
-  };
-}
-
-module.exports = { doraTool, search, fetchUrl };
+};
