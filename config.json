@@ -43,7 +43,7 @@
       "timeout": 60000
     },
     "ollama": {
-      "apikey""43a54bc05a0a4a10a652aff08a662410.P26pNRD4r6P-iYeWE7WUykAy",
+      "apikey": "43a54bc05a0a4a10a652aff08a662410.P26pNRD4r6P-iYeWE7WUykAy",
       "baseUrl": "https://ollama.com/api/chat",
       "model": "gemma4:e2b",
       "maxTokens": 2048,
