@@ -49,3 +49,13 @@ MIT &mdash; see [LICENSE](LICENSE).
 ## 📬 Links & Contact
 - **Repository**: [https://github.com/rahamanleon/Dora-Ai-API](https://github.com/rahamanleon/Dora-Ai-API)
 - **Issues**: [https://github.com/rahamanleon/Dora-Ai-API/issues](https://github.com/rahamanleon/Dora-Ai-API/issues)
+
+
+---
+
+## 📬 Contact
+
+- **Author**: [Rahaman Leon](https://github.com/rahamanleon)
+- **Email**: rahamanleon16@gmail.com
+- **GitHub**: [https://github.com/rahamanleon](https://github.com/rahamanleon)
+- **Repository**: [https://github.com/rahamanleon/Dora-Ai-API](https://github.com/rahamanleon/Dora-Ai-API)
