@@ -29,5 +29,6 @@
   "bugs": {
     "url": "https://github.com/rahamanleon/Dora-Ai-API/issues"
   },
-  "homepage": "https://github.com/rahamanleon/Dora-Ai-API"
+  "homepage": "https://github.com/rahamanleon/Dora-Ai-API",
+  "license": "MIT"
 }
