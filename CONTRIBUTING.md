@@ -10,7 +10,7 @@
 
 ## Development Setup
 ```bash
-git clone https://github.com/YOUR_USERNAME/Dora-Ai-API.git
+git clone https://github.com/rahamanleon/Dora-Ai-API.git
 cd Dora-Ai-API
 npm install
 npm run dev
