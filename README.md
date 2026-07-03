@@ -4,6 +4,9 @@
 
 ## Features
 
+[![Author](https://img.shields.io/badge/Author-Rahaman%20Leon-blue)](https://github.com/rahamanleon)
+
+
 - 💬 **AI Chat** — powered by Groq LLM (free tier available)
 - 🧠 **Persistent Memory** — MongoDB-backed user memories
 - 🔍 **Web Tools** — search, fetch URLs, generate images
@@ -39,3 +42,10 @@ Edit `config.json` with your:
 ## License
 
 MIT &mdash; see [LICENSE](LICENSE).
+
+
+---
+
+## 📬 Links & Contact
+- **Repository**: [https://github.com/rahamanleon/Dora-Ai-API](https://github.com/rahamanleon/Dora-Ai-API)
+- **Issues**: [https://github.com/rahamanleon/Dora-Ai-API/issues](https://github.com/rahamanleon/Dora-Ai-API/issues)
